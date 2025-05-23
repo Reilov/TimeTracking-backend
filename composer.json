@@ -1,0 +1,11 @@
+{
+    "autoload": {
+        "psr-4": {
+            "Action\\": "src/Action/",
+            "Domain\\": "src/Domain/",
+            "Responder\\": "src/Responder/",
+            "Support\\": "src/Support/",
+            "Router\\": "src/Router/"
+        }
+    }
+}
