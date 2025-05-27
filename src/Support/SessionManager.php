@@ -6,11 +6,22 @@ class SessionManager
 {
     public static function start(): void
     {
-        // Настройки ДО старта сессии
         if (session_status() === PHP_SESSION_NONE) {
-            ini_set('session.cookie_domain', 'localhost');
-            ini_set('session.cookie_samesite', 'Lax');
-            ini_set('session.cookie_secure', '0');
+            $domain = ($_SERVER['HTTP_HOST'] === 'localhost')
+                ? 'localhost'
+                : '.dfaaqq.duckdns.org';
+
+            $lifetime = 60 * 60 * 24 * 7; // 7 дней
+
+            session_set_cookie_params([
+                'lifetime' => $lifetime,
+                'path' => '/',
+                'domain' => $domain,
+                'secure' => true,
+                'httponly' => true,
+                'samesite' => 'None',
+            ]);
+
             session_start();
         }
     }

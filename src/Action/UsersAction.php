@@ -63,55 +63,48 @@ class UsersAction
     private static function handleAllUsers(\PDO $pdo): void
     {
         SessionManager::start();
-        if (SessionManager::getUser()) {
-            $currentUserId = $_SESSION['user']['id'];
-        }
-
+        $currentUserId = SessionManager::getUser() ? $_SESSION['user']['id'] : null;
 
         $sql = "
-            SELECT
-                u.id,
-                u.name,
-                u.email,
-                u.position_id,
-                u.department_id,
-                u.avatar_path,
-                p.name AS position_name,
-                d.name AS department_name,
-                ws.status
-            FROM users u
-            LEFT JOIN positions p ON u.position_id = p.id
-            LEFT JOIN departments d ON u.department_id = d.id
-            LEFT JOIN (
-                SELECT ws1.*
-                FROM work_sessions ws1
-                INNER JOIN (
-                    SELECT user_id, MAX(start_time) AS max_start
-                    FROM work_sessions
-                    GROUP BY user_id
-                ) latest_ws ON ws1.user_id = latest_ws.user_id AND ws1.start_time = latest_ws.max_start
-            ) ws ON ws.user_id = u.id
-            WHERE u.id != ?
-        ";
+        SELECT
+            u.id,
+            u.name,
+            u.email,
+            u.position_id,
+            u.department_id,
+            u.avatar_path,
+            p.name AS position_name,
+            d.name AS department_name,
+            ws.status
+        FROM users u
+        LEFT JOIN positions p ON u.position_id = p.id
+        LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN (
+            SELECT ws1.*
+            FROM work_sessions ws1
+            INNER JOIN (
+                SELECT user_id, MAX(start_time) AS max_start
+                FROM work_sessions
+                GROUP BY user_id
+            ) latest_ws ON ws1.user_id = latest_ws.user_id AND ws1.start_time = latest_ws.max_start
+        ) ws ON ws.user_id = u.id
+    ";
 
+        $params = [];
 
-        $params = [$currentUserId];
-
-        // if (isset($currentUserId)) {
-        //     $sql .= " WHERE u.id != ?";
-        //     $params[] = $currentUserId;
-        // }
+        if ($currentUserId !== null) {
+            $sql .= " WHERE u.id != ?";
+            $params[] = $currentUserId;
+        }
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $users = $stmt->fetchAll();
 
-
         foreach ($users as &$user) {
             $user['avatar'] = $user['avatar_path']
-                ? 'http://' . $_SERVER['HTTP_HOST'] . '/public/storage/avatars/' . $user['avatar_path']
+                ? 'https://' . $_SERVER['HTTP_HOST'] . '/public/storage/avatars/' . $user['avatar_path']
                 : null;
-
             unset($user['avatar_path']);
         }
 

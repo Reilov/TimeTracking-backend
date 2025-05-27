@@ -21,8 +21,9 @@ class LoginAction
             JsonResponder::error('Неверный логин или пароль', 401);
             return;
         }
-        // var_dump($user);
-        // die();
+        $domain = ($_SERVER['HTTP_HOST'] === 'localhost')
+            ? 'localhost'
+            : 'dfaaqq.duckdns.org';
         SessionManager::setUser([
             'id' => $user['id'],
             'name' => $user['name'],
@@ -32,7 +33,7 @@ class LoginAction
             'birth_date' => $user['birth_date'],
             'phone' => $user['phone'],
             'about' => $user['about'],
-            'avatar' => $user['avatar_path'] ? 'http://localhost/public/storage/avatars/' . $user['avatar_path'] : null,
+            'avatar' => $user['avatar_path'] ? 'https://' . $domain . '/public/storage/avatars/' . $user['avatar_path'] : null,
             'role_name' => $user['role_name'],
         ]);
 
