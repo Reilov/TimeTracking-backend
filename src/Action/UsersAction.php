@@ -103,7 +103,7 @@ class UsersAction
 
         foreach ($users as &$user) {
             $user['avatar'] = $user['avatar_path']
-                ? 'https://' . $_SERVER['HTTP_HOST'] . '/public/storage/avatars/' . $user['avatar_path']
+                ? 'http://' . $_SERVER['HTTP_HOST'] . '/public/storage/avatars/' . $user['avatar_path']
                 : null;
             unset($user['avatar_path']);
         }

@@ -15,6 +15,8 @@ class Router
             '/api/timer/stats/weekly' => 'Action\Timer\GetWeeklyStatsAction::handle',
             '/api/timer/stats/(?P<period>week|month|quarter|year|custom)' => 'Action\Timer\GetStatsAction::handle',
             '/api/timer/stats/(?P<period>week|month|quarter|year|custom)/(?P<userId>\d+)' => 'Action\Timer\GetStatsAction::handle',
+            '/api/timer/calendar/(?P<userId>\d+)' => 'Action\Timer\GetCalendarAction::handle',
+            '/api/timesheet' => 'Action\GetTimesheetAction::handle',
         ],
         'POST' => [
             '/api/login' => 'Action\LoginAction::handle',
@@ -23,6 +25,9 @@ class Router
             '/api/update-profile' => 'Action\UpdateProfileAction::handle',
             '/api/update-profile/(\d+)' => 'Action\UpdateProfileAction::handle',
             '/api/register' => 'Action\RegisterAction::handle',
+            '/api/user-day-events' => 'Action\AddUserDayEventsAction::handle',
+            '/api/turnstile' => 'Action\TurnstileAction::handle',
+            // '/api/delete' => 'Action\DeleteUser::handle',
             // '/api/profile' => 'Action\UploadProfileAction::handle'
         ],
         'PUT' => [

@@ -33,7 +33,7 @@ class LoginAction
             'birth_date' => $user['birth_date'],
             'phone' => $user['phone'],
             'about' => $user['about'],
-            'avatar' => $user['avatar_path'] ? 'https://' . $domain . '/public/storage/avatars/' . $user['avatar_path'] : null,
+            'avatar' => $user['avatar_path'] ? 'http://' . $domain . '/public/storage/avatars/' . $user['avatar_path'] : null,
             'role_name' => $user['role_name'],
         ]);
 

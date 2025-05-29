@@ -14,16 +14,18 @@ class GetActiveSessionAction
             $today = date('Y-m-d');
 
             $pdo = Database::getConnection();
+
             $stmt = $pdo->prepare("
                 SELECT 
                     *,
-                    TIMESTAMPDIFF(SECOND, start_time, NOW()) - total_paused_seconds as current_seconds,
-                    CASE 
+                    CASE
                         WHEN status = 'paused' THEN total_worked_seconds
-                        ELSE TIMESTAMPDIFF(SECOND, start_time, NOW()) - total_paused_seconds
+                        WHEN status = 'active' THEN 
+                            TIMESTAMPDIFF(SECOND, start_time, NOW())
+                        ELSE 0
                     END as elapsed_seconds
                 FROM work_sessions 
-                WHERE user_id = ? AND date = ? AND status IN ('active', 'paused')
+                WHERE user_id = ? AND date = ?
                 ORDER BY id DESC
                 LIMIT 1
             ");
@@ -33,10 +35,12 @@ class GetActiveSessionAction
 
             JsonResponder::success($session ? [
                 'active' => $session['status'] === 'active',
-                'elapsed_seconds' => (int)$session['elapsed_seconds'],
-                'status' => $session['status'],
-                'last_paused_at' => $session['last_paused_at']
-            ] : ['active' => false]);
+                'elapsed_seconds' => max(0, (int)$session['elapsed_seconds']), // Гарантируем неотрицательное значение
+                'status' => $session['status']
+            ] : [
+                'active' => false,
+                'elapsed_seconds' => 0
+            ]);
         } catch (\Exception $e) {
             JsonResponder::error('Failed to get session: ' . $e->getMessage());
         }

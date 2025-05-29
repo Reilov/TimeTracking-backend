@@ -39,6 +39,10 @@ class SessionAction
                     self::handleStop($pdo, $input, $session);
                     break;
 
+                case 'add_time':
+                    self::handleAddTime($pdo, $userId, $today, $input, $session);
+                    break;
+
                 default:
                     throw new \InvalidArgumentException('Invalid action');
             }
@@ -62,33 +66,43 @@ class SessionAction
         return $stmt->fetch() ?: null;
     }
 
+
     private static function handleStart(\PDO $pdo, int $userId, string $today, array $input, ?array $session): void
     {
+        $elapsedSeconds = (int)($input['elapsed_seconds'] ?? 0);
+
+
         if ($session && $session['status'] === 'active') {
             throw new \RuntimeException('Session already active');
         }
 
         if ($session && $session['status'] === 'paused') {
-            $pausedDuration = time() - strtotime($session['last_paused_at']);
-            $newTotalSeconds = $session['total_worked_seconds'] + ($input['elapsed_seconds'] ?? 0);
+            $lastPausedAt = strtotime($session['last_paused_at']);
+            $now = time();
+            $pauseDuration = $now - $lastPausedAt;
 
             $stmt = $pdo->prepare("
                 UPDATE work_sessions SET
                     status = 'active',
                     last_paused_at = NULL,
                     total_paused_seconds = total_paused_seconds + ?,
-                    total_worked_seconds = ?,
-                    start_time = IF(start_time IS NULL, NOW(), start_time)
+                    start_time = NOW() - INTERVAL ? SECOND,
+                    total_worked_seconds = ?
                 WHERE id = ?
             ");
-            $stmt->execute([$pausedDuration, $newTotalSeconds, $session['id']]);
+            $stmt->execute([
+                $pauseDuration,
+                $elapsedSeconds,
+                $elapsedSeconds,
+                $session['id']
+            ]);
         } else {
             $stmt = $pdo->prepare("
-                INSERT INTO work_sessions 
-                (user_id, date, start_time, status, total_worked_seconds) 
-                VALUES (?, ?, NOW(), 'active', ?)
-            ");
-            $stmt->execute([$userId, $today, $input['elapsed_seconds'] ?? 0]);
+            INSERT INTO work_sessions 
+            (user_id, date, start_time, status, total_worked_seconds) 
+            VALUES (?, ?, NOW(), 'active', ?)
+        ");
+            $stmt->execute([$userId, $today, $elapsedSeconds]);
         }
     }
 
@@ -126,5 +140,33 @@ class SessionAction
             WHERE id = ?
         ");
         $stmt->execute([$totalSeconds, $session['id']]);
+    }
+
+    private static function handleAddTime(\PDO $pdo, int $userId, string $today, array $input, ?array $session): void
+    {
+        $newTotalSeconds = (int)($input['elapsed_seconds'] ?? 0);
+        if ($newTotalSeconds <= 0) {
+            throw new \InvalidArgumentException('Неверное количество времени для добавления');
+        }
+
+        if (!$session) {
+            // Создаем новую сессию с добавленным временем
+            $stmt = $pdo->prepare("
+            INSERT INTO work_sessions 
+            (user_id, date, start_time, status, total_worked_seconds) 
+            VALUES (?, ?, NOW(), 'paused', ?)
+        ");
+            $stmt->execute([$userId, $today, $newTotalSeconds]);
+        } else {
+            // Обновляем существующую сессию
+            // Теперь принимаем уже готовую сумму (старое время + добавленное)
+            $stmt = $pdo->prepare("
+            UPDATE work_sessions SET
+                total_worked_seconds = ?,
+                status = IF(status = 'completed', 'paused', status)
+            WHERE id = ?
+        ");
+            $stmt->execute([$newTotalSeconds, $session['id']]);
+        }
     }
 }
