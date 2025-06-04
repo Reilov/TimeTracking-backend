@@ -7,7 +7,7 @@ class Router
     private $routes = [
         'GET' => [
             '/api/check-login' => 'Action\CheckLoginAction::handle',
-            '/api/sessions/active' => 'Action\GetActiveSessionAction::handle',
+            // '/api/sessions/active' => 'Action\GetActiveSessionAction::handle',
             '/api/users' => 'Action\UsersAction::handle',
             '/api/users/(\d+)' => 'Action\UsersAction::handle',
             '/api/departments' => 'Action\Departments\DepartmentsAction::handle',
@@ -21,12 +21,13 @@ class Router
         'POST' => [
             '/api/login' => 'Action\LoginAction::handle',
             '/api/logout' => 'Action\LogoutAction::handle',
-            '/api/sessions' => 'Action\SessionAction::handle',
             '/api/update-profile' => 'Action\UpdateProfileAction::handle',
             '/api/update-profile/(\d+)' => 'Action\UpdateProfileAction::handle',
             '/api/register' => 'Action\RegisterAction::handle',
-            '/api/user-day-events' => 'Action\AddUserDayEventsAction::handle',
-            '/api/turnstile' => 'Action\TurnstileAction::handle',
+            '/api/user-day-events' => 'Action\AddUserDayEventsAction::handle', // добавить отпуск
+            '/api/turnstile' => 'Action\TurnstileAction::handle', // имитацция турникета
+            '/api/add-work-day' => 'Action\AddWorkDayAction::handle'
+            // '/api/sessions' => 'Action\SessionAction::handle',
             // '/api/delete' => 'Action\DeleteUser::handle',
             // '/api/profile' => 'Action\UploadProfileAction::handle'
         ],

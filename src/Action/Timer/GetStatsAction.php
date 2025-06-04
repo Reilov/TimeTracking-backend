@@ -26,23 +26,25 @@ class GetStatsAction
         [$dateCondition, $startDate, $endDate] = self::buildDateCondition($period, $queryParams);
 
         $stmt = $pdo->prepare("
-            SELECT
-                total_worked_seconds, date
-            FROM 
-                work_sessions 
-            WHERE 
-                user_id = ? 
-                AND status = 'completed'
-                {$dateCondition}
-                AND DAYOFWEEK(date) NOT IN (1, 7)
-        ");
+        SELECT
+            SUM(total_worked_seconds) as total_worked_seconds, 
+            date
+        FROM 
+            work_sessions 
+        WHERE 
+            user_id = ? 
+            AND status = 'completed'
+            {$dateCondition}
+            AND DAYOFWEEK(date) NOT IN (1, 7)
+        GROUP BY date
+    ");
 
         $stmt->execute($queryParams);
         $stats = $stmt->fetchAll();
 
         $totalSeconds = array_reduce($stats, fn($c, $s) => $c + $s['total_worked_seconds'], 0);
         $totalHours = round($totalSeconds / 3600, 2);
-        $workingDaysCount = count(array_unique(array_column($stats, 'date')));
+        $workingDaysCount = count($stats); // Теперь count($stats) вернет количество уникальных дат
         $avgHours = $workingDaysCount > 0 ? round($totalHours / $workingDaysCount, 2) : 0;
 
         JsonResponder::success([

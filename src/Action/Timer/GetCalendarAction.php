@@ -5,6 +5,7 @@ namespace Action\Timer;
 use Support\Database;
 use Responder\JsonResponder;
 use Support\SessionManager;
+use DateTime;
 
 class GetCalendarAction
 {
@@ -12,62 +13,77 @@ class GetCalendarAction
     {
         SessionManager::start();
         $userId = self::getRequestedUserId();
-        // var_dump($userId);
-        // die();
-        // $userId = $_GET['user_id'] ?? SessionManager::getUser()['id'];
         $pdo = Database::getConnection();
 
-        // Получаем рабочие сессии
+        // Получаем рабочие сессии, объединенные по дате
         $stmt = $pdo->prepare("
-            SELECT
-                date,
-                start_time,
-                end_time,
-                total_worked_seconds,
-                status
-            FROM work_sessions
-            WHERE user_id = ?
-        ");
+        SELECT
+            date,
+            SUM(total_worked_seconds) as total_worked_seconds,
+            MAX(status) as status
+        FROM work_sessions
+        WHERE user_id = ?
+        GROUP BY date
+    ");
         $stmt->execute([$userId]);
         $workSessions = $stmt->fetchAll();
 
         // Получаем события (отпуск, больничный и т.д.)
         $stmt2 = $pdo->prepare("
-            SELECT
-                start_date,
-                end_date,
-                type AS status,
-                comment
-            FROM user_day_events
-            WHERE user_id = ?
-        ");
+        SELECT
+            start_date,
+            end_date,
+            type AS status,
+            comment
+        FROM user_day_events
+        WHERE user_id = ?
+    ");
         $stmt2->execute([$userId]);
         $events = $stmt2->fetchAll();
 
         // Приводим к единому формату
         $formatted = [];
 
+        // Обрабатываем рабочие сессии
         foreach ($workSessions as $s) {
-            $formatted[] = [
+            $formatted[$s['date']] = [
                 'date' => $s['date'],
-                'startTime' => date('H:i', strtotime($s['start_time'])),
-                'endTime' => $s['end_time'] ? date('H:i', strtotime($s['end_time'])) : null,
                 'workedSeconds' => (int) $s['total_worked_seconds'],
-                'status' => $s['status']
+                'status' => $s['status'],
+                'type' => 'work'
             ];
         }
 
+        // Обрабатываем события
         foreach ($events as $e) {
-            $formatted[] = [
-                'startDate' => $e['start_date'],
-                'endDate' => $e['end_date'],
-                'workedSeconds' => 0,
-                'status' => $e['status'],
-                'comment' => $e['comment'] ?? ''
-            ];
+            $start = new DateTime($e['start_date']);
+            $end = new DateTime($e['end_date']);
+
+            // Добавляем все даты в диапазоне события
+            for ($date = clone $start; $date <= $end; $date->modify('+1 day')) {
+                $dateStr = $date->format('Y-m-d');
+
+                // Если уже есть запись о работе в этот день, объединяем с событием
+                if (isset($formatted[$dateStr])) {
+                    $formatted[$dateStr]['status'] = $e['status']; // Приоритет у события
+                    $formatted[$dateStr]['comment'] = $e['comment'] ?? '';
+                    $formatted[$dateStr]['type'] = 'mixed';
+                } else {
+                    $formatted[$dateStr] = [
+                        'date' => $dateStr,
+                        'workedSeconds' => 0,
+                        'status' => $e['status'],
+                        'comment' => $e['comment'] ?? '',
+                        'type' => 'event'
+                    ];
+                }
+            }
         }
 
-        JsonResponder::success(['stats' => $formatted]);
+        // Преобразуем ассоциативный массив обратно в индексированный
+        $result = array_values($formatted);
+
+        JsonResponder::success(['stats' => $result]);
     }
 
     private static function getRequestedUserId(): ?int
