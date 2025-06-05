@@ -36,8 +36,8 @@ RESTful API сервер для фронтенд приложения [TimeTrack
 ## 🛠 Установка
 
 ```bash
-git clone https://github.com/ваш-репозиторий/time-tracking-backend.git
-cd time-tracking-backend
+git clone https://github.com/Reilov/TimeTracking-backend.git
+cd TimeTracking-backend
 
 # Установка зависимостей
 composer install --optimize-autoloader
